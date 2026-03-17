@@ -263,17 +263,20 @@ def extract_rlc_name(info: str) -> str:
 # Filter / draw helpers
 # ---------------------------------------------------------------------------
 
-def apply_filters(layer_filter: str | None = 'all', ue_filter: str = ''):
+def apply_filters(layer_filters: dict | None = None, ue_filter: str = ''):
     global filtered_packets, current_page
     current_page = 0
     filtered_packets = packets_data[:]
 
-    if layer_filter and layer_filter != 'all':
-        filtered_packets = [
-            p for p in filtered_packets
-            if p['color_key'] == layer_filter.lower()
-              or p['protocol'].upper() == layer_filter.upper()
-        ]
+    # layer_filters is a dict like {'MAC': True, 'RLC': True, ...}
+    if layer_filters:
+        active_layers = [k for k, v in layer_filters.items() if v]
+        if active_layers:
+            filtered_packets = [
+                p for p in filtered_packets
+                if p['color_key'] in [l.lower() for l in active_layers]
+                   or p['protocol'].upper() in [l.upper() for l in active_layers]
+            ]
 
     if ue_filter:
         ue_lower = ue_filter.lower()
@@ -833,26 +836,40 @@ def create_ui():
         # Sidebar filters
         with ui.column().classes('w-48'):
             ui.label('Filters').classes('text-h6')
-            layer_options = ['all', 'MAC', 'RLC', 'RRC', 'NGAP', 'NAS']
-            layer_sel = ui.select(label='Layer', options=layer_options,
-                                  value='all',
-                                  on_change=lambda e: apply_filters(
-                                      e.value, ue_input.value))
+            
+            # Layer filter checkboxes
+            ui.label('Layers').classes('text-subtitle2')
+            layer_checkboxes = {}
+            for name, color in [('MAC', 'mac'), ('RLC', 'rlc'), ('RRC', 'rrc'), ('NGAP', 'ngap'), ('NAS', 'nas')]:
+                with ui.row().classes('items-center gap-2'):
+                    # Checkbox (no label)
+                    cb = ui.checkbox('', value=True, on_change=lambda e: apply_filters({k: v.value for k, v in layer_checkboxes.items()}, ue_input.value))
+                    # Color indicator square
+                    ui.html(f'<span style="color:{COLORS_UI[color]};font-size:16px">■</span>').classes('text-white')
+                    # Layer name
+                    ui.label(name).classes('text-white')
+                    layer_checkboxes[name] = cb
+            
             ue_input = ui.input(label='UE / IP filter',
                                 placeholder='e.g. 10.0.0.1',
                                 on_change=lambda e: apply_filters(
-                                    layer_sel.value, e.value))
+                                    {k: v.value for k, v in layer_checkboxes.items()}, e.value))
 
-            with ui.card().classes('w-full mt-4'):
-                ui.label('Legend').classes('text-subtitle1')
+            with ui.card().classes('w-full mt-4').style('background: #16213e; padding: 8px'):
+                ui.label('Legend').classes('text-subtitle1 text-white')
+                ui.label('MAC: #4ecca3').classes('text-white text-bold')
+                ui.label('RLC: #ffc857').classes('text-white text-bold')
+                ui.label('RRC: #ff6b6b').classes('text-white text-bold')
+                ui.label('NGAP: #7b68ee').classes('text-white text-bold')
+                ui.label('NAS: #e94560').classes('text-white text-bold')
                 for name, color in [('MAC', COLORS_UI['mac']),
                                     ('RLC', COLORS_UI['rlc']),
                                     ('RRC', COLORS_UI['rrc']),
                                     ('NGAP', COLORS_UI['ngap']),
                                     ('NAS-5GS', COLORS_UI['nas'])]:
                     with ui.row().classes('items-center'):
-                        ui.html(f'<span style="color:{color};font-size:20px">\u25a0</span>')
-                        ui.label(name)
+                        ui.label('■').style(f'color: {color}; font-size: 24px')
+                        ui.label(f'{name} ({color})').classes('text-white')
 
         # Main diagram area (scrollable)
         with ui.column().classes('flex-grow'):
