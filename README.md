@@ -15,7 +15,11 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 
 - **macOS** (tested) - may work on Linux with path adjustments
 - **Python 3.10+**
-- **Wireshark** (includes tshark) - Must be installed at `/Applications/Wireshark.app/Contents/MacOS/tshark`
+- **Wireshark** (includes tshark) - The app automatically searches for tshark in common locations:
+  - `/Applications/Wireshark.app/Contents/MacOS/tshark` (default macOS)
+  - `/opt/homebrew/bin/tshark` (Homebrew on Apple Silicon)
+  - `/usr/local/bin/tshark` (Homebrew on Intel)
+  - Any `tshark` in your PATH
 
 ## Installation
 

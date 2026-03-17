@@ -4,6 +4,7 @@ import subprocess
 import re
 import csv
 import io
+import shutil
 import xml.etree.ElementTree as ET
 from nicegui import app, ui
 
@@ -11,7 +12,29 @@ from nicegui import app, ui
 # tshark-based PCAP parser
 # ---------------------------------------------------------------------------
 
-TSHARK_BIN = '/Applications/Wireshark.app/Contents/MacOS/tshark'
+def find_tshark() -> str:
+    """Find tshark binary in common locations."""
+    paths = [
+        '/Applications/Wireshark.app/Contents/MacOS/tshark',
+        '/Applications/Wireshark.app/Contents/MOS/extras/tshark',
+        '/usr/local/bin/tshark',
+        '/opt/homebrew/bin/tshark',
+        '/usr/bin/tshark',
+    ]
+    
+    for path in paths:
+        if os.path.exists(path) and os.access(path, os.X_OK):
+            return path
+    
+    # Try to find in PATH
+    tshark_path = shutil.which('tshark')
+    if tshark_path:
+        return tshark_path
+    
+    # Default fallback
+    return '/Applications/Wireshark.app/Contents/MacOS/tshark'
+
+TSHARK_BIN = find_tshark()
 
 packets_data: list[dict] = []
 filtered_packets: list[dict] = []
@@ -798,6 +821,12 @@ def create_ui():
                       max_file_size=200_000_000,
                       auto_upload=True) \
               .props('accept=".pcap,.pcapng"').classes('w-32')
+            
+    ui.add_head_html('''
+        <style>
+            .q-uploader__list { display: none !important; }
+        </style>
+    ''')
 
     # --- Body ---
     with ui.row().classes('w-full gap-4 p-4'):
