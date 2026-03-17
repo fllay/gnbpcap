@@ -620,6 +620,8 @@ function initLadder() {
         // Column headers
         ctx.textAlign = 'center';
         ctx.font = 'bold 18px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#9aa0a6';
+        ctx.fillText('Proto', 150, 30);
         ctx.fillStyle = COLORS.ue;
         ctx.fillText('UE', CFG.ueX, 30);
         ctx.fillStyle = COLORS.gnb;
@@ -716,6 +718,13 @@ function initLadder() {
             ctx.font = '10px monospace';
             ctx.textAlign = 'right';
             ctx.fillText(pkt.relative_time.toFixed(4) + 's', 55, y + 3);
+
+            // Protocol type column between timestamp and ladder
+            ctx.fillStyle = color;
+            ctx.font = '11px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            const protoText = (pkt.protocol || '').toString().toUpperCase();
+            ctx.fillText(protoText, 150, y + 3);
         });
     };
 
@@ -834,7 +843,7 @@ def create_ui():
     # --- Body ---
     with ui.row().classes('w-full gap-4 p-4'):
         # Sidebar filters
-        with ui.column().classes('w-48'):
+        with ui.column().classes('w-48').style('background: #16213e;'):
             ui.label('Filters').classes('text-h6')
             
             # Layer filter checkboxes
@@ -842,12 +851,11 @@ def create_ui():
             layer_checkboxes = {}
             for name, color in [('MAC', 'mac'), ('RLC', 'rlc'), ('RRC', 'rrc'), ('NGAP', 'ngap'), ('NAS', 'nas')]:
                 with ui.row().classes('items-center gap-2'):
-                    # Checkbox (no label)
                     cb = ui.checkbox('', value=True, on_change=lambda e: apply_filters({k: v.value for k, v in layer_checkboxes.items()}, ue_input.value))
-                    # Color indicator square
-                    ui.html(f'<span style="color:{COLORS_UI[color]};font-size:16px">■</span>').classes('text-white')
-                    # Layer name
-                    ui.label(name).classes('text-white')
+                    ui.element('div').style(
+                        f'width: 12px; height: 12px; background: {COLORS_UI[color]}; border-radius: 2px;'
+                    )
+                    ui.label(name).style('color: #eaeaea')
                     layer_checkboxes[name] = cb
             
             ue_input = ui.input(label='UE / IP filter',
@@ -856,20 +864,22 @@ def create_ui():
                                     {k: v.value for k, v in layer_checkboxes.items()}, e.value))
 
             with ui.card().classes('w-full mt-4').style('background: #16213e; padding: 8px'):
-                ui.label('Legend').classes('text-subtitle1 text-white')
-                ui.label('MAC: #4ecca3').classes('text-white text-bold')
-                ui.label('RLC: #ffc857').classes('text-white text-bold')
-                ui.label('RRC: #ff6b6b').classes('text-white text-bold')
-                ui.label('NGAP: #7b68ee').classes('text-white text-bold')
-                ui.label('NAS: #e94560').classes('text-white text-bold')
+                ui.label('Legend').classes('text-subtitle1').style('color: #eaeaea')
+                ui.label('MAC: #4ecca3').style('color: #eaeaea; font-weight: bold')
+                ui.label('RLC: #ffc857').style('color: #eaeaea; font-weight: bold')
+                ui.label('RRC: #ff6b6b').style('color: #eaeaea; font-weight: bold')
+                ui.label('NGAP: #7b68ee').style('color: #eaeaea; font-weight: bold')
+                ui.label('NAS: #e94560').style('color: #eaeaea; font-weight: bold')
                 for name, color in [('MAC', COLORS_UI['mac']),
                                     ('RLC', COLORS_UI['rlc']),
                                     ('RRC', COLORS_UI['rrc']),
                                     ('NGAP', COLORS_UI['ngap']),
                                     ('NAS-5GS', COLORS_UI['nas'])]:
-                    with ui.row().classes('items-center'):
-                        ui.label('■').style(f'color: {color}; font-size: 24px')
-                        ui.label(f'{name} ({color})').classes('text-white')
+                    with ui.row().classes('items-center gap-2'):
+                        ui.element('div').style(
+                            f'width: 14px; height: 14px; background: {color}; border-radius: 2px;'
+                        )
+                        ui.label(f'{name} ({color})').style('color: #eaeaea')
 
         # Main diagram area (scrollable)
         with ui.column().classes('flex-grow'):
