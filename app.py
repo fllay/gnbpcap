@@ -39,6 +39,7 @@ TSHARK_BIN = find_tshark()
 packets_data: list[dict] = []
 filtered_packets: list[dict] = []
 loaded_pcap_path: str = ''
+selected_decode_opts: list[str] = []
 
 # Pagination
 PAGE_SIZE = 200
@@ -50,7 +51,7 @@ detail_tree_ref = None
 
 def parse_pcap_tshark(file_path: str) -> list[dict]:
     """Use tshark to decode the PCAP and extract protocol info."""
-    global packets_data, filtered_packets, current_page, loaded_pcap_path
+    global packets_data, filtered_packets, current_page, loaded_pcap_path, selected_decode_opts
 
     packets_data = []
     current_page = 0
@@ -60,85 +61,119 @@ def parse_pcap_tshark(file_path: str) -> list[dict]:
         ui.notify(f'File not found: {file_path}', type='warning')
         return packets_data
 
-    # Use tshark field output for rich decoding.
-    cmd = [
-        TSHARK_BIN,
-        '-r', file_path,
+    base_opts = [
         '-o', 'mac-nr.attempt_to_dissect_srb_sdus:TRUE',
         '-o', 'mac-nr.attempt_rrc_decode:TRUE',
         '-o', 'nas-5gs.null_decipher:TRUE',
-        '-T', 'fields',
-        '-e', 'frame.number',
-        '-e', 'frame.time_relative',
-        '-e', 'frame.protocols',
-        '-e', '_ws.col.Info',
-        '-e', '_ws.col.Protocol',
-        '-e', 'ip.src',
-        '-e', 'ip.dst',
-        '-E', 'header=y',
-        '-E', 'occurrence=l',
+    ]
+    decode_profiles = [
+        [],
+        ['-o', 'wtap_pktap.prefer_pktap:FALSE'],
+        ['-d', 'udp.port==0,udp', '-d', 'user_dlt==149,udp', '-d', 'user_dlt==157,mac-nr-framed'],
     ]
 
+    def parse_lines(lines: list[str]) -> list[dict]:
+        if len(lines) < 2:
+            return []
+        header = lines[0].split('\t')
+        col = {h.strip().lower(): i for i, h in enumerate(header)}
+        tmp_packets = []
+
+        for line in lines[1:]:
+            fields = line.split('\t')
+            if len(fields) < len(header):
+                continue
+
+            def g(name):
+                idx = col.get(name.lower(), -1)
+                if 0 <= idx < len(fields):
+                    return fields[idx].strip()
+                return ''
+
+            frame_num = g('frame.number')
+            rel_time = g('frame.time_relative')
+            protocols = g('frame.protocols')
+            info = g('_ws.col.info')
+            proto_col = g('_ws.col.protocol')
+            ip_src = g('ip.src')
+            ip_dst = g('ip.dst')
+
+            layer, direction, msg_name, color_key = classify_packet(
+                protocols, proto_col, info, ip_src, ip_dst
+            )
+
+            tmp_packets.append({
+                'index': int(frame_num) if frame_num else 0,
+                'relative_time': float(rel_time) if rel_time else 0.0,
+                'protocols': protocols,
+                'protocol': layer,
+                'color_key': color_key,
+                'message_type': msg_name,
+                'direction': direction,
+                'info': info,
+                'src': ip_src,
+                'dst': ip_dst,
+            })
+        return tmp_packets
+
+    best_packets: list[dict] = []
+    best_profile: list[str] = []
+    best_score = -1
+    last_error = ''
+
     print(f'Running tshark on {file_path} ...')
+    for profile in decode_profiles:
+        cmd = [
+            TSHARK_BIN,
+            '-r', file_path,
+            *base_opts,
+            *profile,
+            '-T', 'fields',
+            '-e', 'frame.number',
+            '-e', 'frame.time_relative',
+            '-e', 'frame.protocols',
+            '-e', '_ws.col.Info',
+            '-e', '_ws.col.Protocol',
+            '-e', 'ip.src',
+            '-e', 'ip.dst',
+            '-E', 'header=y',
+            '-E', 'occurrence=l',
+        ]
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    except FileNotFoundError:
-        ui.notify('tshark not found. Install Wireshark.', type='negative')
-        return packets_data
-    except subprocess.TimeoutExpired:
-        ui.notify('tshark timed out', type='negative')
-        return packets_data
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        except FileNotFoundError:
+            ui.notify('tshark not found. Install Wireshark.', type='negative')
+            return packets_data
+        except subprocess.TimeoutExpired:
+            continue
 
-    lines = result.stdout.strip().split('\n')
-    print(f'tshark returned {len(lines)} lines, returncode={result.returncode}')
-    if result.returncode != 0:
-        print(f'tshark stderr: {result.stderr[:500]}')
-    if len(lines) < 2:
+        lines = result.stdout.strip().split('\n') if result.stdout.strip() else []
+        if result.returncode != 0:
+            last_error = result.stderr[:500]
+            continue
+
+        candidate_packets = parse_lines(lines)
+        if not candidate_packets:
+            continue
+
+        non_pktap = sum(1 for p in candidate_packets if p.get('protocol', '').upper() != 'PKTAP')
+        score = non_pktap * 100000 + len(candidate_packets)
+        if score > best_score:
+            best_score = score
+            best_packets = candidate_packets
+            best_profile = profile
+
+    packets_data = best_packets
+    selected_decode_opts = best_profile
+
+    if not packets_data:
+        if last_error:
+            print(f'tshark stderr: {last_error}')
         ui.notify('No packets decoded by tshark', type='warning')
         return packets_data
 
-    header = lines[0].split('\t')
-    col = {h.strip().lower(): i for i, h in enumerate(header)}
-    print(f'Header columns: {col}')
-
-    for line in lines[1:]:
-        fields = line.split('\t')
-        if len(fields) < len(header):
-            continue
-
-        def g(name):
-            idx = col.get(name.lower(), -1)
-            if 0 <= idx < len(fields):
-                return fields[idx].strip()
-            return ''
-
-        frame_num = g('frame.number')
-        rel_time = g('frame.time_relative')
-        protocols = g('frame.protocols')
-        info = g('_ws.col.info')
-        proto_col = g('_ws.col.protocol')
-        ip_src = g('ip.src')
-        ip_dst = g('ip.dst')
-
-        layer, direction, msg_name, color_key = classify_packet(
-            protocols, proto_col, info, ip_src, ip_dst
-        )
-
-        packets_data.append({
-            'index': int(frame_num) if frame_num else 0,
-            'relative_time': float(rel_time) if rel_time else 0.0,
-            'protocols': protocols,
-            'protocol': layer,
-            'color_key': color_key,
-            'message_type': msg_name,
-            'direction': direction,
-            'info': info,
-            'src': ip_src,
-            'dst': ip_dst,
-        })
-
-    print(f'Parsed {len(packets_data)} packets via tshark')
+    print(f'Parsed {len(packets_data)} packets via tshark; profile={best_profile}')
     filtered_packets = packets_data[:]
     return packets_data
 
@@ -403,6 +438,7 @@ def tshark_get_pdml(frame_num: int) -> list[dict]:
         '-o', 'mac-nr.attempt_to_dissect_srb_sdus:TRUE',
         '-o', 'mac-nr.attempt_rrc_decode:TRUE',
         '-o', 'nas-5gs.null_decipher:TRUE',
+        *selected_decode_opts,
         '-Y', f'frame.number == {frame_num}',
         '-T', 'pdml',
     ]
