@@ -70,6 +70,12 @@ def parse_pcap_tshark(file_path: str) -> list[dict]:
         [],
         ['-o', 'wtap_pktap.prefer_pktap:FALSE'],
         ['-d', 'udp.port==0,udp', '-d', 'user_dlt==149,udp', '-d', 'user_dlt==157,mac-nr-framed'],
+        [
+            '-o', 'uat:user_dlts:"User 0 (DLT=149)","udp","0","","0",""',
+            '-o', 'uat:user_dlts:"User 1 (DLT=157)","mac-nr-framed","0","","0",""',
+            '-o', 'uat:user_dlts:"User 2 (DLT=152)","ngap","0","","0",""',
+            '-o', 'uat:user_dlts:"User 3 (DLT=156)","gtp","0","","0",""',
+        ],
     ]
 
     def parse_lines(lines: list[str]) -> list[dict]:
@@ -158,7 +164,11 @@ def parse_pcap_tshark(file_path: str) -> list[dict]:
             continue
 
         non_pktap = sum(1 for p in candidate_packets if p.get('protocol', '').upper() != 'PKTAP')
-        score = non_pktap * 100000 + len(candidate_packets)
+        meaningful = sum(
+            1 for p in candidate_packets
+            if p.get('protocol', '').upper() in {'MAC', 'RLC', 'RRC', 'NR RRC', 'NGAP', 'NAS-5GS', 'GTP'}
+        )
+        score = meaningful * 1000000 + non_pktap * 100000 + len(candidate_packets)
         if score > best_score:
             best_score = score
             best_packets = candidate_packets
