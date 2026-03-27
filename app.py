@@ -65,6 +65,10 @@ def parse_pcap_tshark(file_path: str) -> list[dict]:
         '-o', 'mac-nr.attempt_to_dissect_srb_sdus:TRUE',
         '-o', 'mac-nr.attempt_rrc_decode:TRUE',
         '-o', 'nas-5gs.null_decipher:TRUE',
+        '--enable-heuristic', 'mac_nr_udp',
+        '--enable-heuristic', 'rlc_nr_udp',
+        '--enable-heuristic', 'pdcp_nr_udp',
+        '--enable-heuristic', 'nas_5gs_udp',
     ]
     decode_profiles = [
         [],
@@ -448,6 +452,10 @@ def tshark_get_pdml(frame_num: int) -> list[dict]:
         '-o', 'mac-nr.attempt_to_dissect_srb_sdus:TRUE',
         '-o', 'mac-nr.attempt_rrc_decode:TRUE',
         '-o', 'nas-5gs.null_decipher:TRUE',
+        '--enable-heuristic', 'mac_nr_udp',
+        '--enable-heuristic', 'rlc_nr_udp',
+        '--enable-heuristic', 'pdcp_nr_udp',
+        '--enable-heuristic', 'nas_5gs_udp',
         *selected_decode_opts,
         '-Y', f'frame.number == {frame_num}',
         '-T', 'pdml',
