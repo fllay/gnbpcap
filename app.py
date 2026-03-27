@@ -71,10 +71,10 @@ def parse_pcap_tshark(file_path: str) -> list[dict]:
         ['-o', 'wtap_pktap.prefer_pktap:FALSE'],
         ['-d', 'udp.port==0,udp', '-d', 'user_dlt==149,udp', '-d', 'user_dlt==157,mac-nr-framed'],
         [
-            '-o', 'uat:user_dlts:"User 0 (DLT=149)","udp","0","","0",""',
-            '-o', 'uat:user_dlts:"User 1 (DLT=157)","mac-nr-framed","0","","0",""',
-            '-o', 'uat:user_dlts:"User 2 (DLT=152)","ngap","0","","0",""',
-            '-o', 'uat:user_dlts:"User 3 (DLT=156)","gtp","0","","0",""',
+            '-o', 'uat:user_dlts:"User 2 (DLT=149)","udp","0","","0",""',
+            '-o', 'uat:user_dlts:"User 10 (DLT=157)","mac-nr-framed","0","","0",""',
+            '-o', 'uat:user_dlts:"User 5 (DLT=152)","ngap","0","","0",""',
+            '-o', 'uat:user_dlts:"User 9 (DLT=156)","gtp","0","","0",""',
         ],
     ]
 
