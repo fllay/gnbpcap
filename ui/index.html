@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5G NR Ladder Diagram</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>5G NR Ladder Diagram</h1>
+    <div class="header-controls">
+      <input id="pcapPath" type="text" placeholder="/path/to/capture.pcap" />
+      <button id="pickBtn">Browse</button>
+      <button id="loadBtn">Load</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <h2>Filters</h2>
+      <div class="filter-block">
+        <h3>Layers</h3>
+        <label><input type="checkbox" data-layer="MAC" checked /> MAC</label>
+        <label><input type="checkbox" data-layer="RLC" checked /> RLC</label>
+        <label><input type="checkbox" data-layer="RRC" checked /> RRC</label>
+        <label><input type="checkbox" data-layer="NGAP" checked /> NGAP</label>
+        <label><input type="checkbox" data-layer="NAS" checked /> NAS</label>
+      </div>
+
+      <div class="filter-block">
+        <h3>UE / IP</h3>
+        <input id="ueFilter" type="text" placeholder="e.g. 10.0.0.1" />
+      </div>
+
+      <div class="filter-block legend">
+        <h3>Legend</h3>
+        <p><span class="dot mac"></span> MAC</p>
+        <p><span class="dot rlc"></span> RLC</p>
+        <p><span class="dot rrc"></span> RRC</p>
+        <p><span class="dot ngap"></span> NGAP</p>
+        <p><span class="dot nas"></span> NAS-5GS</p>
+      </div>
+    </aside>
+
+    <section class="center-pane">
+      <div class="pagination">
+        <button id="firstPage">|&lt;</button>
+        <button id="prevPage">&lt;&lt; Prev</button>
+        <span id="pageLabel">Page 0 / 0</span>
+        <button id="nextPage">Next &gt;&gt;</button>
+        <button id="lastPage">&gt;|</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="ladderCanvas" width="950" height="650"></canvas>
+      </div>
+    </section>
+
+    <aside class="details-pane">
+      <div class="details-header">
+        <h2>Packet Details</h2>
+        <div class="tree-actions">
+          <button id="expandAllBtn" type="button">Expand All</button>
+          <button id="collapseAllBtn" type="button">Collapse All</button>
+        </div>
+      </div>
+      <div id="detailsTree" class="tree-root"></div>
+    </aside>
+  </main>
+
+  <footer class="status-bar">
+    <span id="statusText">Ready</span>
+    <span id="tsharkPath"></span>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

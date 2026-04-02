@@ -1,0 +1,12 @@
+{
+  "name": "gnbpcap-tauri",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
+    "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^1.6.2"
+  }
+}
