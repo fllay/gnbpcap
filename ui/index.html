@@ -64,6 +64,16 @@
           <button id="collapseAllBtn" type="button">Collapse All</button>
         </div>
       </div>
+      <div class="detail-search-wrap">
+        <input id="detailSearch" type="text" placeholder="Search fields…" autocomplete="off" spellcheck="false" />
+        <button id="detailSearchClear" type="button" title="Clear search">×</button>
+        <div id="detailSearchDropdown" class="detail-search-dropdown"></div>
+      </div>
+      <div class="search-nav" id="searchNav">
+        <button id="searchPrev" type="button" title="Previous match">↑</button>
+        <span id="searchMatchInfo"></span>
+        <button id="searchNext" type="button" title="Next match">↓</button>
+      </div>
       <div id="detailsTree" class="tree-root"></div>
     </aside>
   </main>
