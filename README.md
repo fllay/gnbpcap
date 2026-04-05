@@ -2,6 +2,8 @@
 
 A desktop application for visualizing 5G NR (New Radio) protocol traces as an interactive ladder diagram. Built with [Tauri](https://tauri.app/) (Rust backend + HTML/JS frontend) and uses Wireshark's `tshark` for deep protocol decoding.
 
+![5G NR Ladder Diagram Viewer](docs/screenshot.png)
+
 ## Features
 
 - **Load PCAP files** — Browse or enter a file path directly
@@ -9,6 +11,7 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 - **Protocol Layers** — Color-coded by layer: MAC, RLC, RRC, NGAP, NAS-5GS
 - **Filtering** — Filter by protocol layer or UE/IP address
 - **Click for Details** — Click any message to see the full Wireshark-like protocol tree
+- **Packet Details Search** — Search fields in the protocol tree with autocomplete and match navigation
 - **Pagination** — Navigate through large captures with page controls
 
 ## Requirements
