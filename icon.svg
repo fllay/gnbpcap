@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="200" fill="#0A1628"/>
+
+  <!-- Grid lines horizontal -->
+  <line x1="0" y1="200" x2="1024" y2="200" stroke="#152236" stroke-width="3"/>
+  <line x1="0" y1="340" x2="1024" y2="340" stroke="#152236" stroke-width="3"/>
+  <line x1="0" y1="480" x2="1024" y2="480" stroke="#152236" stroke-width="3"/>
+  <line x1="0" y1="620" x2="1024" y2="620" stroke="#152236" stroke-width="3"/>
+  <line x1="0" y1="760" x2="1024" y2="760" stroke="#152236" stroke-width="3"/>
+  <line x1="0" y1="900" x2="1024" y2="900" stroke="#152236" stroke-width="3"/>
+
+  <!-- Grid lines vertical -->
+  <line x1="200" y1="0" x2="200" y2="1024" stroke="#152236" stroke-width="3"/>
+  <line x1="370" y1="0" x2="370" y2="1024" stroke="#152236" stroke-width="3"/>
+  <line x1="512" y1="0" x2="512" y2="1024" stroke="#152236" stroke-width="3"/>
+  <line x1="654" y1="0" x2="654" y2="1024" stroke="#152236" stroke-width="3"/>
+  <line x1="824" y1="0" x2="824" y2="1024" stroke="#152236" stroke-width="3"/>
+
+  <!-- UE rail — blue -->
+  <line x1="280" y1="120" x2="280" y2="860" stroke="#3A8EFF" stroke-width="14" stroke-linecap="round"/>
+  <!-- gNB rail — red -->
+  <line x1="744" y1="120" x2="744" y2="860" stroke="#FF5A5A" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Rail cap dots -->
+  <circle cx="280" cy="120" r="24" fill="#3A8EFF"/>
+  <circle cx="744" cy="120" r="24" fill="#FF5A5A"/>
+
+  <!-- UE label -->
+  <rect x="200" y="58" width="160" height="56" rx="14" fill="#1A3050"/>
+  <text x="280" y="100" text-anchor="middle" font-family="system-ui, sans-serif" font-size="44" font-weight="700" fill="#3A8EFF">UE</text>
+
+  <!-- gNB label -->
+  <rect x="664" y="58" width="160" height="56" rx="14" fill="#301A1A"/>
+  <text x="744" y="100" text-anchor="middle" font-family="system-ui, sans-serif" font-size="44" font-weight="700" fill="#FF5A5A">gNB</text>
+
+  <!-- Arrow marker definitions -->
+  <defs>
+    <marker id="arrowY" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#F5C542" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#5CE89A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- Message arrows — UE→gNB yellow -->
+  <line x1="304" y1="230" x2="718" y2="230" stroke="#F5C542" stroke-width="10" stroke-linecap="round" marker-end="url(#arrowY)"/>
+  <!-- gNB→UE green -->
+  <line x1="720" y1="370" x2="306" y2="370" stroke="#5CE89A" stroke-width="10" stroke-linecap="round" marker-end="url(#arrowG)"/>
+  <!-- UE→gNB yellow -->
+  <line x1="304" y1="510" x2="718" y2="510" stroke="#F5C542" stroke-width="10" stroke-linecap="round" marker-end="url(#arrowY)"/>
+  <!-- gNB→UE green -->
+  <line x1="720" y1="650" x2="306" y2="650" stroke="#5CE89A" stroke-width="10" stroke-linecap="round" marker-end="url(#arrowG)"/>
+  <!-- UE→gNB yellow -->
+  <line x1="304" y1="790" x2="718" y2="790" stroke="#F5C542" stroke-width="10" stroke-linecap="round" marker-end="url(#arrowY)"/>
+
+  <!-- 5G NR badge -->
+  <rect x="337" y="870" width="350" height="90" rx="20" fill="#1A3A5C"/>
+  <text x="512" y="934" text-anchor="middle" font-family="system-ui, sans-serif" font-size="64" font-weight="800" fill="#ffffff">5G NR</text>
+</svg>
