@@ -44,20 +44,26 @@ const el = {
   layerCbs: [...document.querySelectorAll("input[type=checkbox][data-layer]")]
 };
 
-const COLORS = {
-  bg: "#111b30",
-  lifeline: "#2f7a62",
-  lifelineGnb: "#3d5d9a",
-  mac: "#4ecca3",
-  rlc: "#ffc857",
-  rrc: "#ff6b6b",
-  ngap: "#7b68ee",
-  nas: "#e94560",
-  other: "#8a95ad",
-  text: "#e8edf7",
-  ue: "#ff6b6b",
-  gnb: "#4dabf7"
-};
+function getCanvasColors() {
+  const light = document.documentElement.classList.contains("light");
+  return {
+    bg:          light ? "#eaf0fa"               : "#111b30",
+    lifeline:    light ? "#237a58"               : "#2f7a62",
+    lifelineGnb: light ? "#2d5090"               : "#3d5d9a",
+    mac:         light ? "#1a9a78"               : "#4ecca3",
+    rlc:         light ? "#a07000"               : "#ffc857",
+    rrc:         light ? "#cc3333"               : "#ff6b6b",
+    ngap:        light ? "#5544cc"               : "#7b68ee",
+    nas:         light ? "#bb2244"               : "#e94560",
+    other:       light ? "#5a6578"               : "#8a95ad",
+    text:        light ? "#1a2540"               : "#e8edf7",
+    ue:          light ? "#cc3333"               : "#ff6b6b",
+    gnb:         light ? "#2a7bcc"               : "#4dabf7",
+    protoLabel:  light ? "#445570"               : "#9aa0b4",
+    timeText:    light ? "#445570"               : "#667491",
+    selectedRow: light ? "rgba(0,0,0,0.08)"      : "rgba(255,255,255,0.08)",
+  };
+}
 
 const CFG = {
   width: 950,
@@ -283,6 +289,7 @@ function drawCurrentPage() {
 }
 
 function drawLadder(packets) {
+  const COLORS = getCanvasColors();
   const canvas = el.canvas;
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
@@ -300,7 +307,7 @@ function drawLadder(packets) {
 
   ctx.textAlign = "center";
   ctx.font = 'bold 18px "JetBrains Mono", monospace';
-  ctx.fillStyle = "#9aa0b4";
+  ctx.fillStyle = COLORS.protoLabel;
   ctx.fillText("Proto", 150, 30);
   ctx.fillStyle = COLORS.ue;
   ctx.fillText("UE", CFG.ueX, 30);
@@ -338,7 +345,7 @@ function drawLadder(packets) {
     const color = COLORS[pkt.colorKey] || COLORS.other;
 
     if (i === state.selectedRow) {
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillStyle = COLORS.selectedRow;
       ctx.fillRect(0, y - CFG.rowH / 2 + 2, CFG.width, CFG.rowH);
     }
 
@@ -383,7 +390,7 @@ function drawLadder(packets) {
       frameNum: pkt.index
     });
 
-    ctx.fillStyle = "#667491";
+    ctx.fillStyle = COLORS.timeText;
     ctx.font = "10px monospace";
     ctx.textAlign = "right";
     ctx.fillText(`${Number(pkt.relativeTime).toFixed(4)}s`, 55, y + 3);
@@ -629,6 +636,13 @@ function bindEvents() {
   el.searchPrev.addEventListener("click", () => navigateSearch(-1));
   el.searchNext.addEventListener("click", () => navigateSearch(1));
 
+  document.getElementById("themeToggle").addEventListener("click", () => {
+    const isLight = document.documentElement.classList.toggle("light");
+    document.getElementById("themeToggle").textContent = isLight ? "🌙" : "☀";
+    localStorage.setItem("theme", isLight ? "light" : "dark");
+    drawCurrentPage();
+  });
+
   el.canvas.addEventListener("mousemove", (event) => {
     const { x, y } = toCanvasPoint(event);
     const onLabel = state.hitRegions.some((r) => contains(r, x, y));
@@ -674,6 +688,10 @@ function toCanvasPoint(event) {
 }
 
 function init() {
+  if (localStorage.getItem("theme") === "light") {
+    document.documentElement.classList.add("light");
+    document.getElementById("themeToggle").textContent = "🌙";
+  }
   bindEvents();
   clearTree("Click a message to see details");
   drawCurrentPage();
