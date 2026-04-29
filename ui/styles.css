@@ -12,6 +12,37 @@
   --nas: #e94560;
   --other: #8a95ad;
   --border: #2a3b5e;
+  --tree-label: #d8e1f7;
+  --tree-toggle: #9db4df;
+  --tree-toggle-hover: #d8e1f7;
+  --canvas-bg: #111b30;
+  --canvas-border: #243b64;
+  --header-bg: rgba(12, 24, 43, 0.85);
+  --pane-bg: rgba(19, 32, 54, 0.85);
+  --body-grad-top: #1a2f53;
+  --btn-grad-start: #223861;
+  --btn-grad-end: #1a2d4f;
+  --btn-hover-border: #405987;
+}
+
+html.light {
+  --bg: #f0f4fa;
+  --surface: #e2eaf6;
+  --surface-alt: #d5e0f0;
+  --text: #1a2540;
+  --muted: #4a5a7a;
+  --border: #b0c0d8;
+  --tree-label: #2a3550;
+  --tree-toggle: #5a7ab0;
+  --tree-toggle-hover: #1a2540;
+  --canvas-bg: #eaf0fa;
+  --canvas-border: #b0c4dc;
+  --header-bg: rgba(215, 228, 248, 0.92);
+  --pane-bg: rgba(226, 234, 246, 0.9);
+  --body-grad-top: #c5d8f0;
+  --btn-grad-start: #cdd9ef;
+  --btn-grad-end: #bccce4;
+  --btn-hover-border: #8099bf;
 }
 
 * {
@@ -20,7 +51,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #1a2f53 0%, var(--bg) 55%);
+  background: radial-gradient(ellipse at top, var(--body-grad-top) 0%, var(--bg) 55%);
   color: var(--text);
   font-family: "JetBrains Mono", "Consolas", monospace;
   min-height: 100vh;
@@ -34,7 +65,7 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
-  background: rgba(12, 24, 43, 0.85);
+  background: var(--header-bg);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
 }
@@ -71,14 +102,14 @@ input {
 button {
   border: 1px solid var(--border);
   color: var(--text);
-  background: linear-gradient(180deg, #223861 0%, #1a2d4f 100%);
+  background: linear-gradient(180deg, var(--btn-grad-start) 0%, var(--btn-grad-end) 100%);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;
 }
 
 button:hover {
-  border-color: #405987;
+  border-color: var(--btn-hover-border);
 }
 
 .layout {
@@ -93,7 +124,7 @@ button:hover {
 .sidebar,
 .details-pane,
 .center-pane {
-  background: rgba(19, 32, 54, 0.85);
+  background: var(--pane-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   min-height: 0;
@@ -184,8 +215,8 @@ button:hover {
 }
 
 #ladderCanvas {
-  background: #111b30;
-  border: 1px solid #243b64;
+  background: var(--canvas-bg);
+  border: 1px solid var(--canvas-border);
   border-radius: 8px;
 }
 
@@ -201,7 +232,7 @@ button:hover {
 }
 
 .tree-label {
-  color: #d8e1f7;
+  color: var(--tree-label);
   margin: 2px 0;
 }
 
@@ -218,13 +249,13 @@ button:hover {
   padding: 0;
   border: none;
   background: transparent;
-  color: #9db4df;
+  color: var(--tree-toggle);
   line-height: 1;
   cursor: pointer;
 }
 
 .tree-toggle:hover {
-  color: #d8e1f7;
+  color: var(--tree-toggle-hover);
 }
 
 .tree-spacer {
@@ -330,6 +361,14 @@ button:hover {
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 12px;
+}
+
+.theme-toggle {
+  padding: 6px 10px;
+  font-size: 16px;
+  line-height: 1;
+  min-width: 36px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 1200px) {
