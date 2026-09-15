@@ -7,9 +7,8 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
+gnbpcap-core = { path = "../gnbpcap-core" }
 tauri = { version = "1.6", features = ["dialog-open"] }
-xmltree = "0.11"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

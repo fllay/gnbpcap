@@ -1,8 +1,24 @@
-"""MCP server exposing gnbpcap's 5G NR PCAP parsing as tools.
+#!/usr/bin/env python3
+"""
+MCP server exposing gnbpcap's pcap-parsing logic to Claude Desktop.
 
-Wraps the `gnbpcap-cli` Rust binary (built from ../gnbpcap-cli) so an MCP
-client (e.g. Claude Desktop) can parse PCAP captures and inspect individual
-packet details without going through the Tauri UI.
+Shells out to the `gnbpcap-cli` Rust binary (built from the shared
+gnbpcap-core crate — the same logic the Tauri GUI uses) and exposes
+it as MCP tools, plus a couple of higher-level tools that encode
+common 5G NR analysis workflows directly.
+
+Requires: pip install "mcp[cli]"
+Requires: gnbpcap-cli built — from the workspace root:
+    cargo build --release -p gnbpcap-cli
+
+Configure the binary location with GNBPCAP_CLI_BIN if it's not at
+the default ../target/{release,debug}/gnbpcap-cli relative to this file.
+
+Response sizes are kept under any client's per-call limit: parse_pcap
+paginates and byte-caps its output (with an optional protocol_filter),
+and get_packet_details supports field_filter/node_id/max_depth to scope
+into oversized decoded trees (e.g. RRC UE Capability Information) instead
+of failing outright.
 """
 
 import json
@@ -17,107 +33,48 @@ except ModuleNotFoundError:
 
 mcp = FastMCP("gnbpcap")
 
-CLI_BIN = os.environ.get(
-    "GNBPCAP_CLI",
-    os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "..",
-        "target",
-        "release",
-        "gnbpcap-cli",
-    ),
-)
-
-
-def _run_cli(args: list[str]) -> str:
-    try:
-        result = subprocess.run(
-            [CLI_BIN, *args],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-    except FileNotFoundError:
-        raise RuntimeError(
-            f"gnbpcap-cli not found at '{CLI_BIN}'. Build it with "
-            "`cargo build --release -p gnbpcap-cli`, or set GNBPCAP_CLI "
-            "to its path."
-        )
-
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "gnbpcap-cli failed")
-
-    return result.stdout
-
+HERE = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_ROOT = os.path.dirname(HERE)
 
 # Keep a single tool response comfortably under any client's per-call size
-# limit, regardless of how many packets are requested.
+# limit, regardless of how much was requested or how big a decoded tree is.
 MAX_RESPONSE_BYTES = 200_000
 
 
-@mcp.tool()
-def parse_pcap(
-    file_path: str,
-    offset: int = 0,
-    limit: int = 500,
-    protocol_filter: Optional[list[str]] = None,
-) -> dict:
-    """Parse a 5G NR PCAP file and return a window of its decoded packets.
+def _find_cli_bin() -> str:
+    env_bin = os.environ.get("GNBPCAP_CLI_BIN")
+    if env_bin and os.path.exists(env_bin):
+        return env_bin
 
-    Tries several tshark decode profiles and picks the one that yields the
-    most meaningful 5G NR layers (MAC/RLC/RRC/NGAP/NAS-5GS/GTP). Results are
-    paginated and size-capped so a single call never returns more than a
-    client can safely consume, even for large captures.
+    for profile in ("release", "debug"):
+        candidate = os.path.join(WORKSPACE_ROOT, "target", profile, "gnbpcap-cli")
+        if os.path.exists(candidate):
+            return candidate
 
-    Args:
-        file_path: Absolute path to the .pcap/.pcapng file to parse.
-        offset: Index of the first matching packet to return (0-based).
-        limit: Maximum number of packets to return in this call.
-        protocol_filter: Optional list of protocol layers to keep (e.g.
-            `["RRC", "NAS-5GS"]`); matches the `protocol` field
-            case-insensitively. Filtering narrows the result before
-            pagination, so it's usually the fastest way to get a call flow
-            without paging.
+    raise FileNotFoundError(
+        "gnbpcap-cli binary not found. Build it with:\n"
+        "  cargo build --release -p gnbpcap-cli\n"
+        "from the gnbpcap workspace root, or set GNBPCAP_CLI_BIN."
+    )
 
-    Returns:
-        Object with `packets` (this window), `totalPackets` (matching the
-        filter, before windowing), `offset`, `returned` (count actually
-        included — may be less than `limit` if the size cap was hit),
-        `hasMore` and `nextOffset` (call again with this offset to continue),
-        `selectedDecodeOpts`, and `tsharkBin`.
-    """
-    full = json.loads(_run_cli(["parse", file_path]))
-    packets = full["packets"]
 
-    if protocol_filter:
-        wanted = {p.upper() for p in protocol_filter}
-        packets = [p for p in packets if p["protocol"].upper() in wanted]
-
-    total = len(packets)
-    window = packets[offset : offset + max(limit, 0)]
-
-    trimmed = []
-    size = 0
-    for pkt in window:
-        pkt_size = len(json.dumps(pkt))
-        if trimmed and size + pkt_size > MAX_RESPONSE_BYTES:
-            break
-        trimmed.append(pkt)
-        size += pkt_size
-
-    returned = len(trimmed)
-    next_offset = offset + returned if offset + returned < total else None
-
-    return {
-        "packets": trimmed,
-        "totalPackets": total,
-        "offset": offset,
-        "returned": returned,
-        "hasMore": next_offset is not None,
-        "nextOffset": next_offset,
-        "selectedDecodeOpts": full["selectedDecodeOpts"],
-        "tsharkBin": full["tsharkBin"],
-    }
+def _run_cli(*args: str) -> Any:
+    cli_bin = _find_cli_bin()
+    proc = subprocess.run(
+        [cli_bin, *args],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    stdout = proc.stdout.strip()
+    if not stdout:
+        raise RuntimeError(
+            f"gnbpcap-cli produced no output (exit={proc.returncode}): {proc.stderr.strip()}"
+        )
+    result = json.loads(stdout)
+    if isinstance(result, dict) and "error" in result:
+        raise RuntimeError(result["error"])
+    return result
 
 
 def _flatten_tree_labels(nodes: list, out: list) -> None:
@@ -207,17 +164,86 @@ def _cap_depth(nodes: list, depth: int) -> list:
 
 
 @mcp.tool()
+def parse_pcap(
+    file_path: str,
+    offset: int = 0,
+    limit: int = 500,
+    protocol_filter: Optional[list[str]] = None,
+) -> dict:
+    """Parse a 5G NR pcap file (MAC-NR/RLC-NR/NGAP/NAS-5GS) and return a
+    window of its decoded packets: frame number, relative time, protocol
+    layer, direction (ul/dl), a short message-type summary, and the raw
+    tshark info column for each frame. Use this first to see the overall
+    session flow (RRC Setup, Registration, Security Mode, RRC
+    Reconfiguration, PDU Session, etc.) before drilling into any specific
+    frame with get_packet_details.
+
+    Results are paginated and size-capped so a single call never returns
+    more than a client can safely consume, even for large captures.
+
+    Args:
+        file_path: Absolute path to the .pcap/.pcapng file to parse.
+        offset: Index of the first matching packet to return (0-based).
+        limit: Maximum number of packets to return in this call.
+        protocol_filter: Optional list of protocol layers to keep (e.g.
+            `["RRC", "NAS-5GS"]`); matches the `protocol` field
+            case-insensitively. Filtering narrows the result before
+            pagination, so it's usually the fastest way to get a call flow
+            without paging.
+
+    Returns:
+        Object with `packets` (this window), `totalPackets` (matching the
+        filter, before windowing), `offset`, `returned` (count actually
+        included — may be less than `limit` if the size cap was hit),
+        `hasMore` and `nextOffset` (call again with this offset to continue),
+        `selectedDecodeOpts`, and `tsharkBin`.
+    """
+    full = _run_cli("parse-pcap", file_path)
+    packets = full["packets"]
+
+    if protocol_filter:
+        wanted = {p.upper() for p in protocol_filter}
+        packets = [p for p in packets if p["protocol"].upper() in wanted]
+
+    total = len(packets)
+    window = packets[offset : offset + max(limit, 0)]
+
+    trimmed = []
+    size = 0
+    for pkt in window:
+        pkt_size = len(json.dumps(pkt))
+        if trimmed and size + pkt_size > MAX_RESPONSE_BYTES:
+            break
+        trimmed.append(pkt)
+        size += pkt_size
+
+    returned = len(trimmed)
+    next_offset = offset + returned if offset + returned < total else None
+
+    return {
+        "packets": trimmed,
+        "totalPackets": total,
+        "offset": offset,
+        "returned": returned,
+        "hasMore": next_offset is not None,
+        "nextOffset": next_offset,
+        "selectedDecodeOpts": full["selectedDecodeOpts"],
+        "tsharkBin": full["tsharkBin"],
+    }
+
+
+@mcp.tool()
 def get_packet_details(
     file_path: str,
     frame_num: int,
-    decode_opts: Optional[list[str]] = None,
+    selected_decode_opts: Optional[list[str]] = None,
     field_filter: Optional[list[str]] = None,
     node_id: Optional[str] = None,
     max_depth: Optional[int] = None,
 ) -> Any:
-    """Get the decoded protocol tree (PDML) for one frame — or a scoped
-    slice of it, for exploratory analysis without ever hitting the
-    response-size limit.
+    """Get the decoded protocol tree (like Wireshark's packet detail pane)
+    for one frame — or a scoped slice of it, for exploratory analysis
+    without ever hitting the response-size limit.
 
     Some messages (RRC UE Capability Information especially) decode into a
     tree with hundreds of thousands of characters of JSON — too big for a
@@ -246,7 +272,7 @@ def get_packet_details(
     Args:
         file_path: Absolute path to the .pcap/.pcapng file.
         frame_num: 1-based tshark frame number to inspect.
-        decode_opts: Optional tshark decode options, normally the
+        selected_decode_opts: Optional tshark decode options, normally the
             `selectedDecodeOpts` returned by `parse_pcap` for this same
             file, so the same decode profile is used.
         field_filter: Optional list of case-insensitive substrings to match
@@ -269,10 +295,10 @@ def get_packet_details(
         `outline` — so you always get something back and know what to try
         next instead of a bare failure.
     """
-    args = ["details", file_path, str(frame_num)]
-    for opt in decode_opts or []:
-        args.extend(["--decode-opt", opt])
-    tree = json.loads(_run_cli(args))
+    args = ["packet-details", file_path, str(frame_num)]
+    if selected_decode_opts:
+        args.extend(selected_decode_opts)
+    tree = _run_cli(*args)
 
     scope_label = None
     if node_id:
@@ -355,7 +381,7 @@ def check_redcap_status(file_path: str) -> dict:
     instead of requiring you to manually locate and read the (huge)
     capability frame.
     """
-    full = json.loads(_run_cli(["parse", file_path]))
+    full = _run_cli("parse-pcap", file_path)
     packets = full.get("packets", [])
     decode_opts = full.get("selectedDecodeOpts", [])
 
@@ -386,10 +412,9 @@ def check_redcap_status(file_path: str) -> dict:
         }
 
     frame_num = candidates[0]["index"]
-    args = ["details", file_path, str(frame_num)]
-    for opt in decode_opts:
-        args.extend(["--decode-opt", opt])
-    tree = json.loads(_run_cli(args))
+    args = ["packet-details", file_path, str(frame_num)]
+    args.extend(decode_opts)
+    tree = _run_cli(*args)
 
     labels: list = []
     _flatten_tree_labels(tree, labels)

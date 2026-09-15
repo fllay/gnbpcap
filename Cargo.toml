@@ -1,3 +1,7 @@
 [workspace]
-members = ["src-tauri", "gnbpcap-cli"]
 resolver = "2"
+members = [
+    "gnbpcap-core",
+    "gnbpcap-cli",
+    "src-tauri",
+]
