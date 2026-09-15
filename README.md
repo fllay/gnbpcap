@@ -51,18 +51,89 @@ The desktop window opens directly via Tauri WebView.
 PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:build
 ```
 
+## Claude Desktop Integration (MCP)
+
+Besides the Tauri GUI, gnbpcap's PCAP parsing is also available directly in
+[Claude Desktop](https://claude.ai/download) chat via an MCP (Model Context
+Protocol) server — no need to open the desktop app to ask questions about a
+capture.
+
+### 1. Build the CLI binary
+
+```bash
+cargo build --release -p gnbpcap-cli
+```
+
+### 2. Install the MCP server's Python dependencies
+
+```bash
+pip install -r mcp-server/requirements.txt
+```
+
+### 3. Register the server
+
+Add this to `claude_desktop_config.json`'s `mcpServers` object:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "gnbpcap": {
+      "command": "python3",
+      "args": ["/absolute/path/to/gnbpcap/mcp-server/server.py"],
+      "env": {
+        "GNBPCAP_CLI_BIN": "/absolute/path/to/gnbpcap/target/release/gnbpcap-cli"
+      }
+    }
+  }
+}
+```
+
+`GNBPCAP_CLI_BIN` is optional — if unset, the server looks for
+`target/{release,debug}/gnbpcap-cli` relative to the workspace root
+automatically.
+
+**Fully quit and reopen Claude Desktop** (the config is only read at
+startup) — the server needs to be restarted the same way after any future
+`gnbpcap-cli`/`server.py` changes, too.
+
+This exposes three tools in chat:
+
+- **`parse_pcap`** — decode a capture into its packet list, paginated and
+  size-capped (with an optional `protocol_filter`) so large captures never
+  exceed a single response's size budget
+- **`get_packet_details`** — the full decoded protocol tree for one frame,
+  with `field_filter`/`node_id`/`max_depth` options to scope into huge
+  messages (e.g. RRC UE Capability Information) instead of hitting a
+  response-size limit
+- **`check_redcap_status`** — automatically finds the UE capability
+  exchange and reports 3GPP Release 17 RedCap capability
+
+See [`mcp-server/SETUP.md`](mcp-server/SETUP.md) for full details and
+manual verification steps.
+
 ## Project Structure
 
 ```
 gnbpcap/
-├── src-tauri/              # Rust backend
-│   ├── src/main.rs         # Tauri commands: parse_pcap, get_packet_details
+├── gnbpcap-core/           # Shared Rust parsing logic (no Tauri deps)
+│   └── src/lib.rs          # tshark invocation, decode-profile scoring, PDML tree building
+├── gnbpcap-cli/            # Thin CLI shim over gnbpcap-core, JSON on stdout
+│   └── src/main.rs         # Only consumer is mcp-server/server.py
+├── src-tauri/              # Rust backend (Tauri app)
+│   ├── src/main.rs         # Tauri commands: parse_pcap, get_packet_details — delegates to gnbpcap-core
 │   ├── Cargo.toml
 │   └── tauri.conf.json
+├── mcp-server/             # MCP server for Claude Desktop
+│   ├── server.py           # parse_pcap, get_packet_details, check_redcap_status tools
+│   ├── requirements.txt
+│   └── SETUP.md            # Claude Desktop configuration instructions
 ├── ui/                     # Frontend (plain HTML/CSS/JS)
 │   ├── index.html
 │   ├── main.js             # Ladder diagram, canvas rendering, Tauri invoke calls
 │   └── styles.css
+├── Cargo.toml              # Workspace root (gnbpcap-core, gnbpcap-cli, src-tauri)
 ├── SPEC.md                 # Original specification
 ├── CLAUDE.md               # AI coding assistant context (Claude Code / opencode)
 ├── package.json
