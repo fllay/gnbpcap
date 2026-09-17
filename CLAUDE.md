@@ -9,7 +9,7 @@ This file is read by Claude Code and opencode to provide project context.
 ## Stack
 
 - **Core parsing logic**: Rust (`gnbpcap-core/src/lib.rs`) — pure functions, no Tauri types. Invokes `tshark`, auto-selects a decode profile, parses PDML XML. Shared by both consumers below.
-- **Desktop app**: Rust (`src-tauri/src/main.rs`) — thin Tauri command wrappers around `gnbpcap-core`
+- **Desktop app**: Rust (`src-tauri/src/main.rs`) — thin Tauri command wrappers around `gnbpcap-core`, plus process-lifecycle commands (`start_mcp_server`/`stop_mcp_server`/`mcp_server_status`) for the UI's MCP on/off toggle
 - **Frontend**: Plain HTML/CSS/JS (`ui/`) — canvas-based ladder diagram, no framework
 - **MCP server**: Python (`mcp-server/server.py`) — exposes the same `gnbpcap-core` logic to Claude Desktop via a small Rust CLI shim (`gnbpcap-cli`), so Claude can call `parse_pcap`/`get_packet_details`/`check_redcap_status` directly. See `mcp-server/SETUP.md`.
 - **Build tool**: Cargo workspace (root `Cargo.toml`) for the three Rust crates; Tauri CLI via npm (`package.json`) for the desktop app specifically
@@ -30,8 +30,8 @@ PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:dev
 |------|---------|
 | `gnbpcap-core/src/lib.rs` | All parsing logic: tshark invocation, decode-profile scoring, packet classification, PDML tree building. No Tauri deps — edit here, not in src-tauri, for anything that should apply to both the GUI and the MCP server |
 | `gnbpcap-cli/src/main.rs` | Thin CLI shim over gnbpcap-core (`parse-pcap`, `packet-details` subcommands), prints JSON to stdout. Only consumer is `mcp-server/server.py` |
-| `src-tauri/src/main.rs` | Tauri command wrappers only — delegates to gnbpcap-core |
-| `mcp-server/server.py` | MCP server for Claude Desktop — shells out to gnbpcap-cli. `parse_pcap` paginates/byte-caps its output (with optional `protocol_filter`); `get_packet_details` supports `field_filter`/`node_id`/`max_depth` to scope into oversized decoded trees; `check_redcap_status` is a higher-level RedCap capability check |
+| `src-tauri/src/main.rs` | Tauri command wrappers for gnbpcap-core, plus `start_mcp_server`/`stop_mcp_server`/`mcp_server_status` — spawns/kills `mcp-server/server.py --transport http` as a child process for the MCP toggle in the header |
+| `mcp-server/server.py` | MCP server, runnable over stdio (default, spawned by an MCP client like Claude Desktop) or `--transport http --port N` (spawned/killed by the Tauri app's MCP toggle instead). `parse_pcap` paginates/byte-caps its output (with optional `protocol_filter`); `get_packet_details` supports `field_filter`/`node_id`/`max_depth` to scope into oversized decoded trees; `check_redcap_status` is a higher-level RedCap capability check |
 | `ui/main.js` | All frontend logic: canvas rendering, Tauri invoke calls, state management |
 | `ui/index.html` | App shell and layout |
 | `ui/styles.css` | Styles |
@@ -48,6 +48,7 @@ PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:dev
 - All tshark calls are run via `spawn_blocking` to avoid blocking the async runtime
 - Frontend holds all session state (loaded path, selected decode opts, packets, pagination)
 - The MCP server (`mcp-server/server.py`) is a separate, stateless consumer of the same core logic via `gnbpcap-cli` — any single tool-call response is capped well under typical LLM client size limits, since a full capture's packet list or a capability message's decoded tree can otherwise run into the hundreds of KB
+- The MCP toggle in the UI runs the server as an HTTP process the Tauri app owns (`RunEvent::Exit` kills it if the app quits while it's on) — this is a separate mode from a client (e.g. Claude Desktop) spawning it over stdio; `claude_desktop_config.json` must use a `url` entry, not `command`/`args`, to talk to the toggle-controlled instance
 
 ## Do Not
 

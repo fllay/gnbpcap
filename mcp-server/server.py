@@ -19,8 +19,17 @@ paginates and byte-caps its output (with an optional protocol_filter),
 and get_packet_details supports field_filter/node_id/max_depth to scope
 into oversized decoded trees (e.g. RRC UE Capability Information) instead
 of failing outright.
+
+By default this runs over stdio, for an MCP client (e.g. Claude Desktop)
+that spawns it directly. Pass --transport http to instead serve over
+Streamable HTTP on a fixed local port — this is the mode the Tauri app's
+MCP toggle uses, since a client can connect to (and disconnect from) an
+already-running HTTP server, which isn't possible with stdio:
+
+    python3 server.py --transport http --port 8765
 """
 
+import argparse
 import json
 import os
 import subprocess
@@ -28,8 +37,12 @@ from typing import Any, Optional
 
 try:
     from mcp.server.fastmcp import FastMCP  # mcp 1.x
+
+    _MCP_V2 = False
 except ModuleNotFoundError:
     from mcp.server.mcpserver import MCPServer as FastMCP  # mcp 2.x
+
+    _MCP_V2 = True
 
 mcp = FastMCP("gnbpcap")
 
@@ -449,5 +462,31 @@ def check_redcap_status(file_path: str) -> dict:
     }
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "http"],
+        default="stdio",
+        help="stdio (default): spawned directly by an MCP client. "
+        "http: serve Streamable HTTP on --host:--port for a client to "
+        "connect to independently (used by the Tauri app's MCP toggle).",
+    )
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8765)
+    args = parser.parse_args()
+
+    if args.transport == "stdio":
+        mcp.run()
+        return
+
+    if _MCP_V2:
+        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+    else:
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.run(transport="streamable-http")
+
+
 if __name__ == "__main__":
-    mcp.run()
+    main()

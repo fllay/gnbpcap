@@ -1124,6 +1124,7 @@ name = "gnbpcap-tauri"
 version = "0.1.0"
 dependencies = [
  "gnbpcap-core",
+ "serde",
  "tauri",
  "tauri-build",
 ]

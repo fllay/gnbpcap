@@ -179,6 +179,12 @@ instead.)
 `target/{release,debug}/gnbpcap-cli` relative to the workspace root
 automatically.
 
+This is the simplest setup — Claude Desktop starts/stops the server for
+you. If instead you want the Tauri GUI to control when it's running (an
+**MCP toggle** in the app header), see
+[`mcp-server/SETUP.md`](mcp-server/SETUP.md#option-b-http-controlled-by-the-tauri-apps-mcp-toggle),
+which uses a `url`-based config entry instead of `command`/`args`.
+
 **Fully quit and reopen Claude Desktop** (the config is only read at
 startup) — the server needs to be restarted the same way after any future
 `gnbpcap-cli`/`server.py` changes, too.

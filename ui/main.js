@@ -41,7 +41,10 @@ const el = {
   searchMatchInfo: document.getElementById("searchMatchInfo"),
   searchPrev: document.getElementById("searchPrev"),
   searchNext: document.getElementById("searchNext"),
-  layerCbs: [...document.querySelectorAll("input[type=checkbox][data-layer]")]
+  layerCbs: [...document.querySelectorAll("input[type=checkbox][data-layer]")],
+  mcpToggle: document.getElementById("mcpToggle"),
+  mcpStatusDot: document.getElementById("mcpStatusDot"),
+  mcpStatusText: document.getElementById("mcpStatusText")
 };
 
 function getCanvasColors() {
@@ -530,6 +533,65 @@ async function loadCaptureFromPath(path) {
   }
 }
 
+function setMcpUi(status, opts = {}) {
+  const { checked, disabled = false } = opts;
+  el.mcpToggle.disabled = disabled;
+  if (typeof checked === "boolean") {
+    el.mcpToggle.checked = checked;
+  }
+
+  el.mcpStatusDot.classList.remove("running", "error");
+  if (status === "running") {
+    el.mcpStatusDot.classList.add("running");
+    el.mcpStatusText.textContent = "MCP: On";
+  } else if (status === "error") {
+    el.mcpStatusDot.classList.add("error");
+    el.mcpStatusText.textContent = "MCP: Error";
+  } else if (status === "starting") {
+    el.mcpStatusText.textContent = "MCP: Starting…";
+  } else if (status === "stopping") {
+    el.mcpStatusText.textContent = "MCP: Stopping…";
+  } else {
+    el.mcpStatusText.textContent = "MCP: Off";
+  }
+}
+
+async function refreshMcpStatus() {
+  const invoke = getInvoke();
+  if (!invoke) return;
+  try {
+    const status = await invoke("mcp_server_status");
+    setMcpUi(status.running ? "running" : "off", { checked: status.running });
+  } catch (err) {
+    setMcpUi("error", { checked: false });
+  }
+}
+
+async function handleMcpToggle() {
+  const invoke = getInvoke();
+  if (!invoke) {
+    el.mcpToggle.checked = false;
+    notify("Tauri bridge unavailable — can't control the MCP server here.");
+    return;
+  }
+
+  const turningOn = el.mcpToggle.checked;
+  setMcpUi(turningOn ? "starting" : "stopping", { disabled: true });
+
+  try {
+    if (turningOn) {
+      await invoke("start_mcp_server", { port: null });
+      setMcpUi("running", { checked: true, disabled: false });
+    } else {
+      await invoke("stop_mcp_server");
+      setMcpUi("off", { checked: false, disabled: false });
+    }
+  } catch (err) {
+    setMcpUi("error", { checked: false, disabled: false });
+    notify(`MCP server ${turningOn ? "start" : "stop"} failed: ${String(err)}`);
+  }
+}
+
 function bindEvents() {
   el.pickBtn.addEventListener("click", async () => {
     const openDialog = getOpenDialog();
@@ -643,6 +705,8 @@ function bindEvents() {
     drawCurrentPage();
   });
 
+  el.mcpToggle.addEventListener("change", handleMcpToggle);
+
   el.canvas.addEventListener("mousemove", (event) => {
     const { x, y } = toCanvasPoint(event);
     const onLabel = state.hitRegions.some((r) => contains(r, x, y));
@@ -695,6 +759,7 @@ function init() {
   bindEvents();
   clearTree("Click a message to see details");
   drawCurrentPage();
+  refreshMcpStatus();
 }
 
 init();
