@@ -61,21 +61,32 @@ automatically.
 The Tauri GUI has an "MCP" toggle in the header that starts/stops
 `server.py --transport http` itself, so the server only runs while you
 choose to have it on (and while the Tauri app itself is open) — instead of
-Claude Desktop always spawning it in the background. Point
-`claude_desktop_config.json` at the URL instead of a command:
+Claude Desktop always spawning it in the background.
+
+Claude Desktop's `mcpServers` config doesn't accept a bare `"url"` entry
+(at least as of this writing — it silently skips it with "not a valid MCP
+server configuration"). Use [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
+as a tiny stdio↔HTTP bridge instead — Claude Desktop spawns it like any
+other `command`-based server, and it proxies through to whatever's
+listening on the toggle's port:
 
 ```json
 {
   "mcpServers": {
     "gnbpcap": {
-      "url": "http://127.0.0.1:8765/mcp"
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://127.0.0.1:8765/mcp"]
     }
   }
 }
 ```
 
-With this option, tool calls fail if the toggle is off — that's the
-point. `GNBPCAP_CLI_BIN`/`GNBPCAP_MCP_PYTHON`/`GNBPCAP_MCP_SERVER` can be
+With this option, tool calls fail if the toggle is off (`mcp-remote` has
+nothing to connect to) — that's the point. Also note the **startup
+order**: Claude Desktop connects at launch and doesn't retry, so the
+toggle needs to be on *before* you open Claude Desktop, not after.
+
+`GNBPCAP_CLI_BIN`/`GNBPCAP_MCP_PYTHON`/`GNBPCAP_MCP_SERVER` can be
 set as environment variables for the Tauri app's own process if the
 defaults (`python3` on `PATH`, `target/{release,debug}/gnbpcap-cli`, and
 `mcp-server/server.py` next to the workspace root) don't apply on your
