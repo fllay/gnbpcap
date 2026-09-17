@@ -28,10 +28,12 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 5. `/usr/bin/tshark` (default location on Ubuntu/Debian)
 6. Any `tshark` in `PATH`
 
-macOS is the primary, tested platform. Ubuntu and Windows steps below are
-documented from each platform's standard toolchain requirements but have
-not been built/run end-to-end for this project — if something's off,
-please open an issue.
+macOS is the primary, actively-used platform. [CI](#ci--releases) verifies
+the Rust workspace (including the Tauri app crate, which needs the Ubuntu
+system libraries below) actually compiles on Ubuntu and Windows runners
+for every push — but the full local setup steps (installers, `npm run
+tauri:dev`, actually running the built app) haven't been tried end-to-end
+by a person on those platforms. If something's off, please open an issue.
 
 ## Setup
 
@@ -249,6 +251,30 @@ gnbpcap/
 - **Packet list**: `tshark -T fields` with score-based decode profile auto-selection
 - **Detail tree**: `tshark -T pdml` parsed into a recursive `TreeNode` structure
 - **Rendering**: HTML5 Canvas for the ladder diagram
+
+## CI / Releases
+
+Two GitHub Actions workflows build the desktop app across all three
+platforms:
+
+- **`.github/workflows/ci.yml`** — runs on every push to `main` and every
+  PR; `cargo build`/`cargo test` on macOS, Ubuntu, and Windows runners to
+  catch breakage early (this is what actually verifies the Ubuntu/Windows
+  build steps above, unlike the manual setup instructions which aren't
+  independently tested).
+- **`.github/workflows/release.yml`** — triggered by pushing a tag
+  matching `v*` (e.g. `v0.1.0`); builds a macOS universal binary, a Linux
+  `.deb`/`.AppImage`, and a Windows `.msi`/`.exe` via
+  [`tauri-apps/tauri-action`](https://github.com/tauri-apps/tauri-action),
+  and creates a **draft** GitHub Release with all three attached. Review
+  and publish the draft manually from the repo's Releases page.
+
+To cut a release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
 
 ## Troubleshooting
 
