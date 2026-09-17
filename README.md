@@ -16,28 +16,55 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 
 ## Requirements
 
-- **macOS** (tested; may work on Linux with path adjustments)
 - **Wireshark** (provides `tshark`)
 - **Rust toolchain** — install via [rustup](https://rustup.rs/)
-- **Node.js + npm** — install via [Homebrew](https://brew.sh/): `brew install node`
+- **Node.js + npm**
 
 `tshark` is discovered automatically in this order:
 1. `TSHARK_BIN` environment variable
-2. `/Applications/Wireshark.app/Contents/MacOS/tshark`
+2. `/Applications/Wireshark.app/Contents/MacOS/tshark` (macOS)
 3. `/opt/homebrew/bin/tshark`
 4. `/usr/local/bin/tshark`
-5. `/usr/bin/tshark`
+5. `/usr/bin/tshark` (default location on Ubuntu/Debian)
 6. Any `tshark` in `PATH`
 
-> **Windows**: none of the paths above apply, and the `PATH` fallback looks
-> for a file literally named `tshark` (not `tshark.exe`), so auto-discovery
-> currently fails. Set `TSHARK_BIN` explicitly to your Wireshark install,
-> typically `C:\Program Files\Wireshark\tshark.exe` (forward slashes also
-> work: `C:/Program Files/Wireshark/tshark.exe`). Windows also isn't tested
-> for the rest of this project — building Tauri additionally requires the
-> Microsoft C++ Build Tools.
+macOS is the primary, tested platform. Ubuntu and Windows steps below are
+documented from each platform's standard toolchain requirements but have
+not been built/run end-to-end for this project — if something's off,
+please open an issue.
 
 ## Setup
+
+### macOS
+
+```bash
+brew install node wireshark
+git clone <repo>
+cd gnbpcap
+npm install
+```
+
+### Ubuntu / Debian Linux
+
+Tauri needs a handful of system libraries beyond Rust/Node — install them
+along with `tshark`:
+
+```bash
+sudo apt update
+sudo apt install -y tshark libwebkit2gtk-4.0-dev build-essential curl wget \
+  file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Install Node.js (Ubuntu's default `apt` package is often outdated — either
+use [nvm](https://github.com/nvm-sh/nvm) for a current version, or the
+distro package if it's new enough):
+
+```bash
+sudo apt install -y nodejs npm
+```
+
+Then clone and install as usual:
 
 ```bash
 git clone <repo>
@@ -45,18 +72,63 @@ cd gnbpcap
 npm install
 ```
 
+The `tshark` install prompts about allowing non-root packet capture —
+answer either way, since gnbpcap only ever reads existing `.pcap` files,
+never captures live traffic.
+
+### Windows
+
+1. Install Rust via [rustup](https://rustup.rs/) (`rustup-init.exe`), plus
+   the **Microsoft C++ Build Tools** (Visual Studio Build Tools, with the
+   "Desktop development with C++" workload) — Tauri needs the MSVC linker.
+2. Install [Node.js](https://nodejs.org/) (official Windows installer).
+3. Install [Wireshark](https://www.wireshark.org/) (official Windows
+   installer). Auto-discovery doesn't cover Windows paths yet, so set
+   `TSHARK_BIN` explicitly, typically:
+   ```
+   C:\Program Files\Wireshark\tshark.exe
+   ```
+   (forward slashes also work: `C:/Program Files/Wireshark/tshark.exe`)
+4. WebView2 (Tauri's Windows renderer) ships with Windows 10/11 by
+   default; if missing, install the
+   [Evergreen Bootstrapper](https://developer.microsoft.com/microsoft-edge/webview2/).
+
+```powershell
+git clone <repo>
+cd gnbpcap
+npm install
+```
+
 ## Development
+
+macOS (Homebrew's paths aren't on `PATH` by default for GUI-launched
+processes, so they're prefixed explicitly):
 
 ```bash
 PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:dev
+```
+
+Ubuntu/Linux and Windows (rustup/Node installers already put both on
+`PATH`):
+
+```bash
+npm run tauri:dev
 ```
 
 The desktop window opens directly via Tauri WebView.
 
 ## Build
 
+macOS:
+
 ```bash
 PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:build
+```
+
+Ubuntu/Linux and Windows:
+
+```bash
+npm run tauri:build
 ```
 
 ## Claude Desktop Integration (MCP)
@@ -83,6 +155,11 @@ pip install -r mcp-server/requirements.txt
 Add this to `claude_desktop_config.json`'s `mcpServers` object:
 
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+(Claude Desktop doesn't have an official Linux release; on Ubuntu, use
+`gnbpcap-cli`/`mcp-server` with Claude Code or another MCP-capable client
+instead.)
 
 ```json
 {
