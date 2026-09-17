@@ -29,6 +29,14 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 5. `/usr/bin/tshark`
 6. Any `tshark` in `PATH`
 
+> **Windows**: none of the paths above apply, and the `PATH` fallback looks
+> for a file literally named `tshark` (not `tshark.exe`), so auto-discovery
+> currently fails. Set `TSHARK_BIN` explicitly to your Wireshark install,
+> typically `C:\Program Files\Wireshark\tshark.exe` (forward slashes also
+> work: `C:/Program Files/Wireshark/tshark.exe`). Windows also isn't tested
+> for the rest of this project — building Tauri additionally requires the
+> Microsoft C++ Build Tools.
+
 ## Setup
 
 ```bash
