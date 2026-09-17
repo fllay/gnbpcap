@@ -48,7 +48,7 @@ PATH="/opt/homebrew/bin:$HOME/.cargo/bin:$PATH" npm run tauri:dev
 - All tshark calls are run via `spawn_blocking` to avoid blocking the async runtime
 - Frontend holds all session state (loaded path, selected decode opts, packets, pagination)
 - The MCP server (`mcp-server/server.py`) is a separate, stateless consumer of the same core logic via `gnbpcap-cli` — any single tool-call response is capped well under typical LLM client size limits, since a full capture's packet list or a capability message's decoded tree can otherwise run into the hundreds of KB
-- The MCP toggle in the UI runs the server as an HTTP process the Tauri app owns (`RunEvent::Exit` kills it if the app quits while it's on) — this is a separate mode from a client (e.g. Claude Desktop) spawning it over stdio; `claude_desktop_config.json` must use a `url` entry, not `command`/`args`, to talk to the toggle-controlled instance
+- The MCP toggle in the UI runs the server as an HTTP process the Tauri app owns (`RunEvent::Exit` kills it if the app quits while it's on) — this is a separate mode from a client (e.g. Claude Desktop) spawning it over stdio. Claude Desktop doesn't accept a bare `"url"` entry in `claude_desktop_config.json` (silently skipped as invalid) — point it at the toggle-controlled instance via the `mcp-remote` npm package as a stdio↔HTTP bridge instead (see `mcp-server/SETUP.md`, Option B)
 
 ## Do Not
 
