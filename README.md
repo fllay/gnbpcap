@@ -250,6 +250,30 @@ gnbpcap/
 - **Detail tree**: `tshark -T pdml` parsed into a recursive `TreeNode` structure
 - **Rendering**: HTML5 Canvas for the ladder diagram
 
+## CI / Releases
+
+Two GitHub Actions workflows build the desktop app across all three
+platforms:
+
+- **`.github/workflows/ci.yml`** — runs on every push to `main` and every
+  PR; `cargo build`/`cargo test` on macOS, Ubuntu, and Windows runners to
+  catch breakage early (this is what actually verifies the Ubuntu/Windows
+  build steps above, unlike the manual setup instructions which aren't
+  independently tested).
+- **`.github/workflows/release.yml`** — triggered by pushing a tag
+  matching `v*` (e.g. `v0.1.0`); builds a macOS universal binary, a Linux
+  `.deb`/`.AppImage`, and a Windows `.msi`/`.exe` via
+  [`tauri-apps/tauri-action`](https://github.com/tauri-apps/tauri-action),
+  and creates a **draft** GitHub Release with all three attached. Review
+  and publish the draft manually from the repo's Releases page.
+
+To cut a release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
 ## Troubleshooting
 
 ### Window is blank / canvas not showing

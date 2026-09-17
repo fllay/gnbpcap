@@ -172,7 +172,13 @@ mod tests {
     /// Exercises the actual spawn/poll/kill sequence start_mcp_server and
     /// stop_mcp_server use, against the real mcp-server/server.py, without
     /// needing a running Tauri app to extract State from.
+    ///
+    /// Ignored by default: needs python3 with `mcp` installed and
+    /// gnbpcap-cli already built (GNBPCAP_CLI_BIN or the default release/
+    /// debug target path), neither of which a fresh CI runner has. Run
+    /// explicitly with `cargo test -- --ignored` once those are set up.
     #[test]
+    #[ignore]
     fn spawns_http_server_and_it_becomes_reachable_then_stops() {
         let script = mcp_server_script_path();
         assert!(
