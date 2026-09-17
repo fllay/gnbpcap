@@ -376,3 +376,86 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.mcp-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mcp-status-text {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.mcp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--other);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.mcp-status-dot.running {
+  background: var(--mac);
+  box-shadow: 0 0 6px var(--mac);
+}
+
+.mcp-status-dot.error {
+  background: var(--rrc);
+  box-shadow: 0 0 6px var(--rrc);
+}
+
+.mcp-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.mcp-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.mcp-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  transition: background 0.15s ease;
+}
+
+.mcp-switch-slider::before {
+  content: "";
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  top: 2px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.mcp-switch input:checked + .mcp-switch-slider {
+  background: var(--mac);
+  border-color: var(--mac);
+}
+
+.mcp-switch input:checked + .mcp-switch-slider::before {
+  transform: translateX(14px);
+  background: var(--bg);
+}
+
+.mcp-switch input:disabled + .mcp-switch-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

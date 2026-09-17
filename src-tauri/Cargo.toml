@@ -8,6 +8,7 @@ tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
 gnbpcap-core = { path = "../gnbpcap-core" }
+serde = { version = "1", features = ["derive"] }
 tauri = { version = "1.6", features = ["dialog-open"] }
 
 [features]
