@@ -28,10 +28,12 @@ A desktop application for visualizing 5G NR (New Radio) protocol traces as an in
 5. `/usr/bin/tshark` (default location on Ubuntu/Debian)
 6. Any `tshark` in `PATH`
 
-macOS is the primary, tested platform. Ubuntu and Windows steps below are
-documented from each platform's standard toolchain requirements but have
-not been built/run end-to-end for this project — if something's off,
-please open an issue.
+macOS is the primary, actively-used platform. [CI](#ci--releases) verifies
+the Rust workspace (including the Tauri app crate, which needs the Ubuntu
+system libraries below) actually compiles on Ubuntu and Windows runners
+for every push — but the full local setup steps (installers, `npm run
+tauri:dev`, actually running the built app) haven't been tried end-to-end
+by a person on those platforms. If something's off, please open an issue.
 
 ## Setup
 
