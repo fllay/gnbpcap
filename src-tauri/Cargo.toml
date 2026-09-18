@@ -8,8 +8,10 @@ tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
 gnbpcap-core = { path = "../gnbpcap-core" }
+gnbpcap-mcp = { path = "../gnbpcap-mcp" }
 serde = { version = "1", features = ["derive"] }
 tauri = { version = "1.6", features = ["dialog-open"] }
+tokio = { version = "1", features = ["rt"] }
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
