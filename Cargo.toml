@@ -3,5 +3,6 @@ resolver = "2"
 members = [
     "gnbpcap-core",
     "gnbpcap-cli",
+    "gnbpcap-mcp",
     "src-tauri",
 ]
