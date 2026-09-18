@@ -98,7 +98,11 @@ listening on the toggle's port:
 With this option, tool calls fail if the toggle is off (`mcp-remote` has
 nothing to connect to) — that's the point. Also note the **startup
 order**: Claude Desktop connects at launch and doesn't retry, so the
-toggle needs to be on *before* you open Claude Desktop, not after.
+toggle needs to be on *before* you open Claude Desktop, not after. If you
+get the order wrong, Claude Desktop shows a **"MCP gnbpcap: Server
+disconnected"** warning — expected and harmless, not a bug. Turn the
+toggle on and fully restart Claude Desktop to clear it; there's no
+quiet-retry option in `mcp-remote`'s CLI to suppress this automatically.
 
 ---
 

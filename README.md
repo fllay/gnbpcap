@@ -167,7 +167,10 @@ Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
 
 **Startup order matters**: Claude Desktop connects once at launch and
 doesn't retry, so turn the toggle on *before* opening Claude Desktop, not
-after.
+after. If you open Claude Desktop first (or with the toggle off), you'll
+see a **"MCP gnbpcap: Server disconnected"** warning — this is expected
+and harmless (`mcp-remote` had nothing to connect to yet), not a bug.
+Turn the toggle on and fully restart Claude Desktop to clear it.
 
 ### Option A: stdio (Claude Desktop spawns a Python process)
 
